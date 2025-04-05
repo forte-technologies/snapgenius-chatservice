@@ -1,5 +1,8 @@
 package dev.forte.mygeniuschat.ai.service;
 
+import io.micrometer.context.ContextRegistry;
+import io.micrometer.context.ContextSnapshotFactory;
+import io.micrometer.context.ThreadLocalAccessor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
@@ -10,6 +13,8 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -23,18 +28,27 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 import static org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor.FILTER_EXPRESSION;
 
 @Service
-public class ReactiveChatService {
+public class StrictRagChat {
 
     private final ChatClient chatClient;
+
     private final Map<UUID, LocalDateTime> lastAccessTimes = new ConcurrentHashMap<>();
 
-    public ReactiveChatService(ChatClient.Builder builder, VectorStore vectorStore, ChatMemory chatMemory) {
-        // QuestionAnswerAdvisor with dynamic filtering
+    public StrictRagChat(
+            @Qualifier("ragChat") ChatClient.Builder builder, VectorStore vectorStore,
+            @Qualifier("defaultChatMemory") ChatMemory chatMemory,
+            ThreadLocalAccessor<SecurityContext> securityContextAccessor) {
+
+
+        ContextRegistry contextRegistry = ContextRegistry.getInstance();
+        contextRegistry.registerThreadLocalAccessor(securityContextAccessor);
+
         var qaAdvisor = new QuestionAnswerAdvisor(vectorStore,
-                SearchRequest.builder().similarityThreshold(0.01).topK(6).build());
+                SearchRequest.builder().similarityThreshold(0.5).topK(6).build());
 
         VectorStoreChatMemoryAdvisor vectorStoreChatMemoryAdvisor =
                 VectorStoreChatMemoryAdvisor.builder(vectorStore).build();
+
 
         this.chatClient = builder
                 .defaultSystem("You are a helpful AI assistant...")
@@ -48,17 +62,18 @@ public class ReactiveChatService {
     public Flux<String> chatStream(UUID userId, String userMessageContent) {
         lastAccessTimes.put(userId, LocalDateTime.now());
 
+        var snapshot = ContextSnapshotFactory.builder().build().captureAll();
         // Create a consistent conversationId using the userId
         String conversationId = userId.toString();
         String filterExpression = "user_id == '" + userId.toString() + "'";
 
-        return Flux.defer(() -> this.chatClient.prompt()
+        return chatClient.prompt()
                         .user(userMessageContent)
                         .advisors(a -> a
                                 .param(CHAT_MEMORY_CONVERSATION_ID_KEY, conversationId)
-                                .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
+                                .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 20)
                                 .param(FILTER_EXPRESSION, filterExpression))
-                        .stream().content())
-                .subscribeOn(Schedulers.boundedElastic());
+                        .stream().content().contextWrite(snapshot::updateContext);
+
     }
 }

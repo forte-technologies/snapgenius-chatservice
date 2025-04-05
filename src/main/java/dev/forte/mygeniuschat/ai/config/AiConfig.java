@@ -13,6 +13,7 @@ import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,7 +36,7 @@ public class AiConfig {
         OpenAiChatOptions chatOptions = OpenAiChatOptions.builder()
                 .model("gpt-4o")
                 .temperature(0.7)
-                .maxTokens(1200)
+                .maxTokens(900)
                 .build();
 
         return OpenAiChatModel.builder()
@@ -72,12 +73,26 @@ public class AiConfig {
     }
 
     @Bean
+    @Qualifier("ragChat")
     public ChatClient.Builder chatClientBuilder(OpenAiChatModel openAiChatModel) {
         return ChatClient.builder(openAiChatModel);
     }
 
     @Bean
+    @Qualifier("generalChat")
+    public ChatClient.Builder generalChatClientBuilder(OpenAiChatModel openAiChatModel) {
+        return ChatClient.builder(openAiChatModel);
+    }
+
+    @Bean
+    @Qualifier("defaultChatMemory")
     public ChatMemory chatMemory() {
+        return new InMemoryChatMemory();
+    }
+
+    @Bean
+    @Qualifier("generalChatMemory")
+    public ChatMemory generalChatMemory() {
         return new InMemoryChatMemory();
     }
 }

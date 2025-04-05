@@ -1,5 +1,6 @@
 package dev.forte.mygeniuschat.ai.controller;
-import dev.forte.mygeniuschat.ai.service.ReactiveChatService;
+import dev.forte.mygeniuschat.ai.service.GeneralChatService;
+import dev.forte.mygeniuschat.ai.service.StrictRagChat;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,18 +14,29 @@ import java.util.UUID;
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    private final ReactiveChatService chatService;
+    private final StrictRagChat strictRagChatService;
+    private final GeneralChatService generalChatService;
 
-    public ChatController(ReactiveChatService chatService) {
-        this.chatService = chatService;
+    public ChatController(StrictRagChat strictRagChatService, GeneralChatService generalChatService) {
+        this.strictRagChatService = strictRagChatService;
+        this.generalChatService = generalChatService;
     }
 
-    @PostMapping(value = "/stream")
-    public Flux<String> streamChat(
+    @PostMapping(value = "/stream/rag")
+    public Flux<String> streamStrictRagChat(
             Authentication authentication,
             @RequestBody Map<String, String> request) {
         UUID userId = (UUID) authentication.getPrincipal();
         String message = request.get("message");
-        return chatService.chatStream(userId, message);
+        return strictRagChatService.chatStream(userId, message);
+    }
+
+    @PostMapping(value = "/stream/general")
+    public Flux<String> streamGeneralChat(
+            Authentication authentication,
+            @RequestBody Map<String, String> request) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        String message = request.get("message");
+        return generalChatService.generalChatStream(userId, message);
     }
 }

@@ -1,7 +1,7 @@
 # MyGenius Chat Microservice
 
 This microservice is a component of the broader **snapGenius** application, responsible for handling all chat-related functionalities, with a primary focus on Retrieval-Augmented Generation (RAG). It interacts with AI models and a vector database to provide intelligent, context-aware responses based on user-uploaded content (managed by the main backend application).
-
+https://snapgenius.app/
 ## Core Functionalities
 
 *   **Retrieval-Augmented Generation (RAG):** Provides chat endpoints that leverage user-specific data stored as vector embeddings (e.g., from image analysis or document text extraction performed by the main backend). It retrieves relevant context from the vector store based on the user's query and uses it to generate more accurate and relevant responses from the AI model.

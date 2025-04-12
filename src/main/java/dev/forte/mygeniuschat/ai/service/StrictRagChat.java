@@ -44,7 +44,7 @@ public class StrictRagChat {
         contextRegistry.registerThreadLocalAccessor(securityContextAccessor);
 
         var qaAdvisor = new QuestionAnswerAdvisor(vectorStore,
-                SearchRequest.builder().similarityThreshold(0.5).topK(6).build());
+                SearchRequest.builder().similarityThreshold(0.5).topK(12).build());
 
         VectorStoreChatMemoryAdvisor vectorStoreChatMemoryAdvisor =
                 VectorStoreChatMemoryAdvisor.builder(vectorStore).build();

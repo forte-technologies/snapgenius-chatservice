@@ -35,8 +35,8 @@ public class AiConfig {
 
         OpenAiChatOptions chatOptions = OpenAiChatOptions.builder()
                 .model("gpt-4o")
-                .temperature(0.7)
-                .maxTokens(900)
+                .temperature(0.5)
+                .maxTokens(1200)
                 .build();
 
         return OpenAiChatModel.builder()

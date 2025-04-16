@@ -1,6 +1,8 @@
 package dev.forte.mygeniuschat.ai.controller;
+import dev.forte.mygeniuschat.ai.service.AcademicGeneralChatService;
 import dev.forte.mygeniuschat.ai.service.GeneralChatService;
 import dev.forte.mygeniuschat.ai.service.StrictRagChat;
+import dev.forte.mygeniuschat.ai.util.AcademicChatRequest;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,10 +18,12 @@ public class ChatController {
 
     private final StrictRagChat strictRagChatService;
     private final GeneralChatService generalChatService;
+    private final AcademicGeneralChatService academicGeneralChatService;
 
-    public ChatController(StrictRagChat strictRagChatService, GeneralChatService generalChatService) {
+    public ChatController(StrictRagChat strictRagChatService, GeneralChatService generalChatService, AcademicGeneralChatService academicGeneralChatService) {
         this.strictRagChatService = strictRagChatService;
         this.generalChatService = generalChatService;
+        this.academicGeneralChatService = academicGeneralChatService;
     }
 
     @PostMapping(value = "/stream/rag")
@@ -38,5 +42,17 @@ public class ChatController {
         UUID userId = (UUID) authentication.getPrincipal();
         String message = request.get("message");
         return generalChatService.generalChatStream(userId, message);
+    }
+
+    @PostMapping(value = "/stream/academic")
+    public Flux<String> streamGeneralAcademicChat(
+            Authentication authentication,
+            @RequestBody AcademicChatRequest request) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        return academicGeneralChatService.generalChatStream(
+                userId,
+                request.getMessage(),
+                request.getPromptSettings()
+        );
     }
 }

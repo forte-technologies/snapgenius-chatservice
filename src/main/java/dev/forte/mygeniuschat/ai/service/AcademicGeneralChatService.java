@@ -1,13 +1,15 @@
 package dev.forte.mygeniuschat.ai.service;
 
+import dev.forte.mygeniuschat.ai.util.PromptSettings;
+import dev.forte.mygeniuschat.ai.util.PromptTuner;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.context.ContextSnapshotFactory;
 import io.micrometer.context.ThreadLocalAccessor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -27,31 +30,29 @@ import static org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor.F
 
 
 @Service
-public class GeneralChatService {
+public class AcademicGeneralChatService {
 
 
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
     private final Map<UUID, LocalDateTime> lastAccessTimes = new ConcurrentHashMap<>();
 
-    public GeneralChatService(@Qualifier("generalChat") ChatClient.Builder builder,
-                              @Qualifier("defaultChatMemory") ChatMemory chatMemory, VectorStore vectorStore,
-                              ThreadLocalAccessor<SecurityContext> securityContextAccessor) {
+    public AcademicGeneralChatService(@Qualifier("academicChat")OpenAiChatModel openAiChatModel,
+                                      @Qualifier("defaultChatMemory") ChatMemory chatMemory, VectorStore vectorStore,
+                                      ThreadLocalAccessor<SecurityContext> securityContextAccessor) {
 
         ContextRegistry contextRegistry = ContextRegistry.getInstance();
         contextRegistry.registerThreadLocalAccessor(securityContextAccessor);
         this.vectorStore = vectorStore;
-        this.chatClient = builder
-                .defaultSystem("You are a helpful AI assistant...")
-                .defaultAdvisors(
-                        new MessageChatMemoryAdvisor(chatMemory))
-                .build();
+        this.chatClient = ChatClient.builder(openAiChatModel).build();
     }
 
-    public Flux<String> generalChatStream(UUID userId, String userMessageContent) {
+    public Flux<String> generalChatStream(UUID userId, String userMessageContent, PromptSettings promptSettings) {
         lastAccessTimes.put(userId, LocalDateTime.now());
 
         var snapshot = ContextSnapshotFactory.builder().build().captureAll();
+
+        String settings = PromptTuner.buildDynamicSystemPrompt(promptSettings);
 
         String conversationId = userId.toString();
         String filterExpression = "user_id == '" + userId.toString() + "'";
@@ -89,7 +90,7 @@ public class GeneralChatService {
                 })
                 .flatMapMany(enhancedSystemMessage ->
                         this.chatClient.prompt()
-                                .system(enhancedSystemMessage)
+                                .system(settings + " " + enhancedSystemMessage)
                                 .user(userMessageContent)
                                 .advisors(a -> a
                                         .param(CHAT_MEMORY_CONVERSATION_ID_KEY, conversationId)

@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgDistanceType.COSINE_DISTANCE;
 
@@ -27,6 +28,7 @@ public class AiConfig {
     private String openAiApiKey;
 
     @Bean
+    @Primary
     public OpenAiChatModel openAiApi() {
 
         OpenAiApi openAiApi = OpenAiApi.builder()
@@ -37,6 +39,26 @@ public class AiConfig {
                 .model("gpt-4o")
                 .temperature(0.5)
                 .maxTokens(1200)
+                .build();
+
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(chatOptions)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("academicChat")
+    public OpenAiChatModel openAiApiAcademic() {
+
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(openAiApiKey)
+                .build();
+
+        OpenAiChatOptions chatOptions = OpenAiChatOptions.builder()
+                .model("gpt-4o")
+                .temperature(0.7)
+                .maxTokens(12000)
                 .build();
 
         return OpenAiChatModel.builder()

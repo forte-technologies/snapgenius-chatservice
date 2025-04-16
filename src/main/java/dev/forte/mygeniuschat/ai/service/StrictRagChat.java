@@ -44,14 +44,14 @@ public class StrictRagChat {
         contextRegistry.registerThreadLocalAccessor(securityContextAccessor);
 
         var qaAdvisor = new QuestionAnswerAdvisor(vectorStore,
-                SearchRequest.builder().similarityThreshold(0.5).topK(12).build());
+                SearchRequest.builder().similarityThreshold(0.4).topK(25).build());
 
         VectorStoreChatMemoryAdvisor vectorStoreChatMemoryAdvisor =
                 VectorStoreChatMemoryAdvisor.builder(vectorStore).build();
 
 
         this.chatClient = builder
-                .defaultSystem("You are a helpful AI assistant...")
+                .defaultSystem("You are a helpful AI assistant for all things academia...")
                 .defaultAdvisors(
                         new MessageChatMemoryAdvisor(chatMemory),
                         vectorStoreChatMemoryAdvisor,
@@ -68,6 +68,7 @@ public class StrictRagChat {
         String filterExpression = "user_id == '" + userId.toString() + "'";
 
         return chatClient.prompt()
+
                         .user(userMessageContent)
                         .advisors(a -> a
                                 .param(CHAT_MEMORY_CONVERSATION_ID_KEY, conversationId)
